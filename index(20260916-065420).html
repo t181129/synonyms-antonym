@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>類義語・対義語 暗記カード</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#f5f5f5;color:#222}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #ddd;padding:12px}
+h1{font-size:20px;margin:0 0 8px}
+.sub{font-size:12px;color:#666;margin-bottom:10px}
+nav{display:flex;gap:6px;overflow:auto}
+nav button,.control{border:1px solid #ccc;background:#fff;border-radius:999px;padding:8px 12px;white-space:nowrap;font-weight:600}
+nav button.active{background:#222;color:#fff}
+.controls{display:flex;gap:7px;margin-top:9px}
+main{max-width:760px;margin:auto;padding:18px 12px 40px}
+.section{margin-bottom:28px}
+.section h2{font-size:17px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.card{
+  min-height:110px;background:#fff;border:1px solid #ddd;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px;cursor:pointer;box-shadow:0 2px 7px #0000000b;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.word{font-size:25px;font-weight:700;line-height:1.2}
+.hint{font-size:11px;color:#999;margin-top:9px}
+.answer{display:none;margin-top:12px;padding-top:10px;border-top:1px dashed #ccc;font-size:19px;font-weight:700}
+.card.open .answer{display:block}
+.card.open .hint{display:none}
+.card.open{background:#fff}
+.hidden{display:none}
+.count{font-size:12px;color:#777;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+<h1>📚 暗記カード</h1>
+<div class="sub">写真そのものは表示せず、「1つの単語」だけを表示。タップすると、その単語の類義語・対義語が出ます。</div>
+<nav>
+<button class="tab active" data-section="syn">□1 類義語</button>
+<button class="tab" data-section="anti">□2 対義語</button>
+<button class="tab" data-section="multi">□3 多義語</button>
+<button class="tab" data-section="all">全部</button>
+</nav>
+<div class="controls">
+<button class="control" id="shuffle">🔀 シャッフル</button>
+<button class="control" id="openall">答えを全部表示</button>
+<button class="control" id="closeall">全部隠す</button>
+</div>
+</header>
+<main id="app"></main>
+<script>
+const data = {
+syn: {
+ title:"□1 類義語",
+ note:"写真1枚目・□1にある単語だけ",
+ cards:[
+ ["安全","無事"],["得手","得意"],["休憩","休息"],["帰郷","帰省"],["簡単","容易"],
+ ["欠点","短所"],["施設","設備"],["進歩","発達"],["長所","美点"],["当然","必然"],["不足","欠乏"],
+ ["遺憾","残念"],["介入","干渉"],["寛大","度量が大きい"],["機敏","迅速"],["希望","願望"],
+ ["厚意","親切"],["失望","落胆"],["信頼","信用"],["沈着","冷静"],["納得","了解"],["未来","将来"],
+ ["栄養","滋養"],["企画","計画"],["基礎","基本"],["我慢","辛抱"],["互角","対等"],["材料","原料"],
+ ["手段","方法"],["着実","堅実"],["突然","不意"],["有名","著名"],["目的","目標"]
+ ]},
+anti:{
+ title:"□2 対義語",
+ note:"写真1枚目・□2に実際に書いてある単語だけ",
+ cards:[
+ ["有名","無名"],
+ ["有効","無効"],
+ ["清潔","不潔"],
+ ["利","害"],
+ ["縦","横"],
+ ["寒","暖"],
+ ["哀","楽"],
+ ["加害","被害"],
+ ["熟練","未熟"],
+ ["便利","不便"],
+ ["深","浅"],
+ ["得","失"],
+ ["貧","富"],
+ ["明","暗"],
+ ["古","新"],
+ ["左","右"],
+ ["開","閉"],
+ ["乾","湿"],
+ ["野党","与党"],
+ ["平凡","非凡"],
+ ["肯定","否定"],
+ ["減少","増加"],
+ ["固定","流動"],
+ ["単純","複雑"],
+ ["尊重","軽視"],
+ ["親密","疎遠"],
+ ["開発","未開"],
+ ["可決","否決"],
+ ["浮上","沈下"],
+ ["差別","平等"],
+ ["虚偽","真実"],
+ ["特別","普通"],
+ ["現実","理想"],
+ ["軽率","慎重"],
+ ["悲観","楽観"],
+ ["進化","退化"],
+ ["勝利","敗北"],
+ ["徐行","疾走"],
+ ["統一","分裂"],
+ ["拒否","承諾"],
+ ["支出","収入"],
+ ["清流","濁流"],
+ ["浮上","沈下"],
+ ["差別","平等"]
+ ]},
+multi:{
+ title:"□3 多義語",
+ note:"2枚目の□3（※ここは写真では「多義語」になっています）",
+ cards:[
+ ["かける","①腰をかける　②声をかける　③迷惑をかける"],
+ ["たつ","①席を立つ　②明日が立つ　③腹が立つ"],
+ ["みる","①映画を見る　②世話を見る　③様子を見る"],
+ ["とる","①写真を撮る　②手に取る　③責任を取る"],
+ ["あげる","①声を上げる　②手を上げる　③例を挙げる"]
+ ]}
+};
+
+const app=document.getElementById('app');
+let current='syn';
+
+function render(section){
+ current=section;
+ app.innerHTML='';
+ const keys=section==='all'?['syn','anti','multi']:[section];
+ keys.forEach(k=>{
+   const s=data[k];
+   const sec=document.createElement('section'); sec.className='section'; sec.dataset.section=k;
+   sec.innerHTML=`<h2>${s.title}<span class="count">${s.cards.length}問</span></h2><div class="grid"></div>`;
+   const grid=sec.querySelector('.grid');
+   s.cards.forEach(([w,a])=>{
+     const c=document.createElement('div'); c.className='card';
+     c.innerHTML=`<div class="word">${w}</div><div class="hint">タップして答えを見る</div><div class="answer">${a}</div>`;
+     c.onclick=()=>c.classList.toggle('open');
+     grid.appendChild(c);
+   });
+   app.appendChild(sec);
+ });
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>render(b.dataset.section));
+document.getElementById('openall').onclick=()=>document.querySelectorAll('.card').forEach(c=>c.classList.add('open'));
+document.getElementById('closeall').onclick=()=>document.querySelectorAll('.card').forEach(c=>c.classList.remove('open'));
+document.getElementById('shuffle').onclick=()=>{
+ document.querySelectorAll('.grid').forEach(grid=>{
+   [...grid.children].sort(()=>Math.random()-.5).forEach(c=>grid.appendChild(c));
+ });
+};
+render('multi');
+</script>
+</body>
+</html>
